@@ -26,12 +26,17 @@ public class PlatformHelper {
     }
 
     @ExpectPlatform
-    public static int getApplePressMashingTime() {
+    public static int getGrapevinePotMaxStorage() {
         throw new AssertionError();
     }
 
     @ExpectPlatform
-    public static int getApplePressFermentationTime() {
+    public static int getGrapevinePotRequiredJumps() {
+        throw new AssertionError();
+    }
+
+    @ExpectPlatform
+    public static boolean shouldShowSplashParticles() {
         throw new AssertionError();
     }
 
@@ -87,6 +92,11 @@ public class PlatformHelper {
 
     @ExpectPlatform
     public static boolean shouldShowTooltip() {
+        throw new AssertionError();
+    }
+
+    @ExpectPlatform
+    public static void addFlammable(int burnOdd, int igniteOdd, Block[] blocks) {
         throw new AssertionError();
     }
 

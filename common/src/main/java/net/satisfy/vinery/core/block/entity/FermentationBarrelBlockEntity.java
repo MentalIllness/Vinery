@@ -1,7 +1,6 @@
 package net.satisfy.vinery.core.block.entity;
 
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.Direction;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
@@ -39,6 +38,7 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
 
     private NonNullList<ItemStack> inventory;
     private int fermentationTime = 0;
+    private int maxFermentationTime = 0; 
     private int fluidLevel = 0;
     private String juiceType = "";
 
@@ -48,7 +48,7 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
         public int get(int index) {
             return switch (index) {
                 case 0 -> FermentationBarrelBlockEntity.this.fermentationTime;
-                case 1 -> PlatformHelper.getTotalFermentationTime();
+                case 1 -> FermentationBarrelBlockEntity.this.maxFermentationTime;
                 case 2 -> FermentationBarrelBlockEntity.this.fluidLevel;
                 case 3 -> getJuiceTypeValue();
                 default -> 0;
@@ -59,7 +59,7 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
         public void set(int index, int value) {
             switch (index) {
                 case 0 -> FermentationBarrelBlockEntity.this.fermentationTime = value;
-                case 1 -> FermentationBarrelBlockEntity.this.updateTotalFermentationTime();
+                case 1 -> FermentationBarrelBlockEntity.this.maxFermentationTime = value;
                 case 2 -> FermentationBarrelBlockEntity.this.setFluidLevel(value);
                 case 3 -> FermentationBarrelBlockEntity.this.juiceType = getJuiceTypeFromValue(value);
                 default -> {}
@@ -77,8 +77,11 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
         this.inventory = NonNullList.withSize(INVENTORY_SIZE, ItemStack.EMPTY);
     }
 
-    public void updateTotalFermentationTime() {
-        setChanged();
+    public void updateMaxFermentationTime(int time) {
+        if (this.maxFermentationTime != time) {
+            this.maxFermentationTime = time;
+            setChanged();
+        }
     }
 
     public int getFluidLevel() {
@@ -142,6 +145,7 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
         this.inventory = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
         ContainerHelper.loadAllItems(nbt, this.inventory);
         this.fermentationTime = nbt.getInt("FermentationTime");
+        this.maxFermentationTime = nbt.getInt("MaxFermentationTime"); 
         this.fluidLevel = nbt.getInt("FluidLevel");
         this.juiceType = nbt.getString("JuiceType");
     }
@@ -151,6 +155,7 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
         super.saveAdditional(nbt);
         ContainerHelper.saveAllItems(nbt, this.inventory);
         nbt.putInt("FermentationTime", this.fermentationTime);
+        nbt.putInt("MaxFermentationTime", this.maxFermentationTime); 
         nbt.putInt("FluidLevel", this.fluidLevel);
         nbt.putString("JuiceType", this.juiceType);
     }
@@ -169,9 +174,12 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
                 .orElse(null);
 
         if (blockEntity.canCraft(recipe, access)) {
+            
+            blockEntity.updateMaxFermentationTime(recipe.getCraftingTime());
+
             blockEntity.fermentationTime++;
 
-            if (blockEntity.fermentationTime >= PlatformHelper.getTotalFermentationTime()) {
+            if (blockEntity.fermentationTime >= blockEntity.maxFermentationTime) {
                 blockEntity.fermentationTime = 0;
                 blockEntity.craft(recipe, access);
             }
@@ -211,7 +219,7 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
                     ItemStack existingOutput = blockEntity.getItem(WINE_BOTTLE_SLOT);
                     if (existingOutput.isEmpty()) {
                         blockEntity.setItem(WINE_BOTTLE_SLOT, wineBottleStack);
-                    } else if (existingOutput.is(wineBottleStack.getItem()) && existingOutput.getCount() + wineBottleStack.getCount() <= existingOutput.getMaxStackSize()) {
+                    } else if (existingOutput.is(ObjectRegistry.WINE_BOTTLE.get()) && existingOutput.getCount() + wineBottleStack.getCount() <= existingOutput.getMaxStackSize()) {
                         existingOutput.grow(wineBottleStack.getCount());
                         blockEntity.setItem(WINE_BOTTLE_SLOT, existingOutput);
                     } else {
@@ -329,6 +337,7 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
         if (!sameItem && isIngredientSlot(slot)) {
             if (areIngredientsEmpty()) {
                 this.fermentationTime = 0;
+                this.maxFermentationTime = 0; 
                 setChanged();
             }
         }
@@ -404,62 +413,5 @@ public class FermentationBarrelBlockEntity extends BlockEntity implements Implem
     @Override
     public void clearContent() {
         this.inventory.clear();
-    }
-
-    private boolean isIngredient(ItemStack stack) {
-        if (level == null) return false;
-        return level.getRecipeManager()
-                .getAllRecipesFor(RecipeTypesRegistry.FERMENTATION_BARREL_RECIPE_TYPE.get())
-                .stream()
-                .anyMatch(recipe -> recipe.getIngredients().stream().anyMatch(ingredient -> ingredient.test(stack)));
-    }
-
-    @Override
-    public int @NotNull [] getSlotsForFace(Direction side) {
-        if (side == Direction.UP) {
-            return new int[]{GRAPEJUICE_INPUT_SLOT, WINE_BOTTLE_SLOT};
-        } else if (side == Direction.DOWN) {
-            return new int[]{OUTPUT_SLOT_GENERAL};
-        } else if (side.getAxis().isHorizontal()) {
-            return new int[]{OUTPUT_SLOT_GENERAL, WINE_BOTTLE_SLOT, 1, 2, 3};
-        }
-        return new int[]{};
-    }
-
-    @Override
-    public boolean canPlaceItemThroughFace(int index, ItemStack stack, @Nullable Direction direction) {
-        if (direction == Direction.UP) {
-            if (index == GRAPEJUICE_INPUT_SLOT && JuiceUtil.isJuice(stack)) {
-                return hasSpace(index, stack); 
-            } else if (index == WINE_BOTTLE_SLOT && stack.is(ObjectRegistry.WINE_BOTTLE.get())) {
-                return hasSpace(index, stack); 
-            }
-        } else {
-            assert direction != null;
-            if (direction.getAxis().isHorizontal()) {
-                if ((index >= 1 && index <= 3) && isIngredient(stack)) {
-                    return hasSpace(index, stack); 
-                } else if (index == WINE_BOTTLE_SLOT && stack.is(ObjectRegistry.WINE_BOTTLE.get())) {
-                    return hasSpace(index, stack); 
-                }
-            }
-        }
-        return false;
-    }
-    
-    private boolean hasSpace(int index, ItemStack stack) {
-        ItemStack slotStack = getItem(index); 
-        if (slotStack.isEmpty()) {
-            return true; 
-        }
-        if (ItemStack.isSameItemSameTags(slotStack, stack)) {
-            return slotStack.getCount() + stack.getCount() <= slotStack.getMaxStackSize(); 
-        }
-        return false; 
-    }
-
-    @Override
-    public boolean canTakeItemThroughFace(int index, ItemStack stack, Direction direction) {
-        return (direction == Direction.DOWN || direction.getAxis().isHorizontal()) && index == OUTPUT_SLOT_GENERAL;
     }
 }

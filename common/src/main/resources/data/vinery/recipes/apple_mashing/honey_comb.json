@@ -1,10 +1,11 @@
 {
   "type": "vinery:apple_mashing",
+  "crafting_time": 400,
   "input": {
     "item": "minecraft:honeycomb_block"
   },
   "output": {
     "item": "minecraft:honeycomb",
-    "count": 4
+    "count": 9
   }
 }
