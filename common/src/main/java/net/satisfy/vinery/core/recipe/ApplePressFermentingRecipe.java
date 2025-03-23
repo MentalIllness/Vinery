@@ -91,7 +91,7 @@ public class ApplePressFermentingRecipe implements Recipe<Container> {
             }
             ItemStack output = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "output"));
             boolean requiresBottle = GsonHelper.getAsBoolean(json, "requires_bottle", false);
-            int craftingTime = GsonHelper.getAsInt(json, "crafting_time", 200);
+            int craftingTime = 6000;
             return new ApplePressFermentingRecipe(id, ingredient, output, requiresBottle, craftingTime);
         }
 

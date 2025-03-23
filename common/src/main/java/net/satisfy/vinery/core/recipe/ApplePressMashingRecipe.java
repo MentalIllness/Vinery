@@ -84,7 +84,7 @@ public class ApplePressMashingRecipe implements Recipe<Container> {
                 throw new JsonParseException("No ingredients for recipe: " + id);
             }
             ItemStack output = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "output"));
-            int craftingTime = GsonHelper.getAsInt(json, "crafting_time", 200);
+            int craftingTime = 6000;
             return new ApplePressMashingRecipe(id, ingredient, output, craftingTime);
         }
 

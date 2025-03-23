@@ -296,10 +296,15 @@ public class ObjectRegistry {
         return new WineSettings(effect, duration, strength);
     }
 
-    private static RegistrySupplier<Item> registerWineItem(String name, Supplier<Block> wineBlock, Supplier<WineSettings> wineSettings, boolean scaleDurationWithAge) {
+    private static RegistrySupplier<Item> registerWineItem(
+            String name,
+            Supplier<Block> wineBlock,
+            Supplier<WineSettings> wineSettings,
+            boolean scaleDurationWithAge
+    ) {
         return registerItem(name, () -> new DrinkBlockItem(
                 wineBlock.get(),
-                wineSettings.get().getProperties(),
+                wineSettings.get().getProperties().stacksTo(1), // 🍷 make it unstackable
                 wineSettings.get().getBaseDuration(),
                 scaleDurationWithAge
         ));

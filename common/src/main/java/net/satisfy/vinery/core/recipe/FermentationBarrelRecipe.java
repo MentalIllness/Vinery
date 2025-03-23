@@ -154,7 +154,7 @@ public class FermentationBarrelRecipe implements Recipe<FermentationBarrelBlockE
             }
 
             ItemStack result = ShapedRecipe.itemStackFromJson(GsonHelper.getAsJsonObject(json, "result"));
-            int craftingTime = GsonHelper.getAsInt(json, "crafting_time", 200);
+            int craftingTime = 6000;
 
             return new FermentationBarrelRecipe(id, ingredients, juiceType, juiceAmount, result, wineBottleRequired, craftingTime);
         }
